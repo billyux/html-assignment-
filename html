@@ -5,10 +5,10 @@
     <title>모의투자 - 매도 및 수익률 추가</title>
     <style>
         body { font-family: 'Pretendard', sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
-        .dashboard { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; max-width: 1000px; margin: 0 auto; }
+        
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         h2 { margin-top: 0; font-size: 1.1rem; color: #666; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        
+        .dashboard{display:flex;gap:20px;max-width:1000px;margin:0 auto;}
         /* 자산 정보 */
         .balance-section { margin-bottom: 20px; }
         .balance-val { font-size: 2rem; font-weight: bold; color: #2c3e50; }
@@ -34,10 +34,11 @@
     </style>
 </head>
 <body>
-
+<div class="dashboard"></div>
 <div class="dashboard">
     <!-- 보유 자산 현황 -->
     <div class="card">
+        
         <div class="balance-section">
             <h2>예수금 (Cash)</h2>
             <div class="balance-val" id="myBalance">0 USD</div>
@@ -93,32 +94,41 @@
     let currentStock = { symbol: '', price: 0 };
 
     // 화면 갱신 시 실시간 가격을 반영하여 수익률 계산
-    async function updateUI() {
-        document.getElementById('myBalance').innerText = `$${userData.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-        const tableBody = document.getElementById('portfolioTable');
-        tableBody.innerHTML = '';
+    function updateUI() { //
+        document.getElementById('myBalance').innerText = `$${userData.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;//숫자 쉼표 넣고 소수점 2자리까지 표현
 
-        for (const symbol in userData.portfolio) {
-            const stock = userData.portfolio[symbol];
-            if (stock.qty <= 0) continue;
+        const tableBody = document.getElementById('portfolioTable');//portfoliotable이라는 아이디를 가진 html 박스를 tbody에 저장
+        tableBody.innerHTML = '';// 화면 비우기 아니면 검색하면 tsla,tsla,tsla 누적됨
+
+        for (const symbol in userData.portfolio) {//portfolio 구조는 객체 구조임 for 문을 사용해서 
+            const stock = userData.portfolio[symbol];//종목 데이터 저장  예를 들어 symbol=tsla일때 stock은 qty: 2 , avg: 200; ,stock.qty:양 stock.avg: 평균단가
+            if (stock.qty <= 0) continue;//stock.qty가 0인 경우 반복 스킵
 
             // 수익률 계산: ((현재가 - 평단가) / 평단가) * 100
             // *실제 서비스라면 여기서 각 종목의 현재가를 API로 다시 가져와야 하지만, 
             // 호출 제한을 위해 마지막으로 검색된 가격이나 평단가 기준으로 표시하겠습니다.
-            const currentPrice = (symbol === currentStock.symbol) ? currentStock.price : stock.avg; 
-            const profitRate = ((currentPrice - stock.avg) / stock.avg) * 100;
-            const profitValue = (currentPrice - stock.avg) * stock.qty;
-
+            let currentPrice;
+            if(symbol === currentStock.symbol)
+            {
+                currentPrice = currentStock.price;}
+            else
+            {
+                currentPrice = stock.avg;}
+                //현재 보고 있는 종목이면 최신가격 사용, 아니면 평균 가격 사용
+            const profitRate = ((currentPrice - stock.avg) / stock.avg) * 100;//수익률 계산: [(현재가-평단가)/평단가]*100
+            const profitValue = (currentPrice - stock.avg) * stock.qty;//평가 수익 계산: (현재가-평단가)*수량
+ㅍ
             const row = `<tr>
-                <td>${symbol}</td>
+                <td>${symbol}</td> 
                 <td>${stock.qty}</td>
                 <td>$${stock.avg.toFixed(2)}</td>
                 <td class="${profitRate >= 0 ? 'plus' : 'minus'}">${profitRate.toFixed(2)}%</td>
                 <td class="${profitValue >= 0 ? 'plus' : 'minus'}">$${profitValue.toFixed(2)}</td>
-            </tr>`;
-            tableBody.innerHTML += row;
+            </tr>`;//$[변수값 넣기] EX. SYMBOL = TSLA인경우 html에서 <td>TSLA</td>로 바꿈 
+            // 삼항연산자 수익이 0보다 크면 클래스를 'plus'로 사용 작다면 'minus'로 클래스를 저장- 그러면 위에서 css에서 .plus 는 빨강색 .minus는 파란색으로 지정했으므로 수익률에 따라 색깔이 달라진다는 점을 적용
+            tableBody.innerHTML += row;//table 밑으로 tsla 줄  AAPL줄 이렇게 붙음 이거 안하면 밑에 안뜨고 이상하게 됨
         }
-        localStorage.setItem('stockGameV2', JSON.stringify(userData));
+        localStorage.setItem('stockGameV2', JSON.stringify(userData));// 로컬 storage에 저장-
     }
 
     async function searchStock() {
@@ -129,7 +139,6 @@
         const data = await response.json();
 
         if (data.c === 0) { alert("종목 오류"); return; }
-
         currentStock = { symbol: symbol, price: data.c };
         document.getElementById('stockPreview').style.display = 'block';
         document.getElementById('targetName').innerText = symbol;
